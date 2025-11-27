@@ -46,7 +46,8 @@ class MLBench:
 
     @logger.catch
     def run(self) -> None:
-        for dataset in self._repository.datasets:
+        self.repository.load_datasets()
+        for dataset in self.repository.datasets:
             self._run_on_dataset(dataset)
 
     def _configure_environment(self) -> None:
