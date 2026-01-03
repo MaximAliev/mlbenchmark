@@ -191,8 +191,11 @@ class AutoGluon(AutoML):
             problem_type='binary',
             label=dataset.x.columns[-1],
             eval_metric=metric,
-            verbosity=self._verbosity
-        ).fit(ag_dataset, time_limit=timeout, presets=self.preset)
+        )
+        
+        if timeout is not None:
+            timeout = float(timeout)
+        predictor.fit(ag_dataset, time_limit=timeout, presets=self.preset)
 
         val_scores = predictor.leaderboard().get('score_val')
         if val_scores is None or len(val_scores) == 0:

@@ -30,6 +30,7 @@ class BAML:
         validation_metric = 'f1',
         timeout = None,
         test_metrics: Optional[List[str]] = None,
+        verbosity = 1,
         *args,
         **kwargs
     ):
@@ -42,12 +43,14 @@ class BAML:
         self.validation_metric = validation_metric
         self._timeout = timeout
         self._test_metrics = test_metrics
+        self._verbosity = verbosity
 
-        self._configure_environment()
+        self._configure_environment(self._verbosity)
 
-    def _configure_environment(self) -> None:
-        logger.remove()
-        logger.add(sys.stdout, level='INFO')
+    def _configure_environment(self, logging_level: int) -> None:
+        if logging_level < 2:
+            logger.remove()
+            logger.add(sys.stdout, level='INFO')
 
     @logger.catch
     def run(self) -> None:
