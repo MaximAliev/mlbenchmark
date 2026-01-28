@@ -22,7 +22,7 @@ from data.repository import DatasetRepository, BinaryImbalancedDatasetRepository
 from core._helpers import infer_positive_target_class, train_test_split
 
 
-class Benchme:
+class MLBenchmark:
     """
     User interface for performing AutoML benchmarks.
 
@@ -138,7 +138,7 @@ class Benchme:
             )
 
         training_dataset.size = int(x_train.memory_usage(deep=True).sum() / (1024 ** 2))
-        logger.debug(f"Train sample size < {training_dataset.size + 1}mb.")
+        logger.debug(f"Train sample size(floored) is {training_dataset.size}mb.")
 
         validation_metric = self.validation_metric
         if len(class_belongings) > 2 and str(self.backend) == 'AutoGluon':

@@ -1,5 +1,5 @@
-# Benchme
-The project goal is to improve reproducibility of benchmarking of automated machine learning (AutoML) tools by introducing a unified API.
+# variou on different data modalitiess
+The project goal is to improve reproducibility of benchmarking of various machine learning methods on different data modalities.
 
 ### Project status
 The project under active development and new frameworks, tasks, metrics and data repositories to be added soon.
@@ -18,18 +18,18 @@ The project under active development and new frameworks, tasks, metrics and data
 
 #### Usage
 ```python
-from core.api import Benchme
+from core.api import MLBenchmark
 
 
 def main():
-    benchme = Benchme(
+    bench = MLBenchmark(
         automl='ag',
         preset='best',
         metric='f1',
         timeout=1800,
         extra_metrics=['average_precision']
     )
-    benchme.run()
+    bench.run()
 
 
 if __name__ == '__main__':
