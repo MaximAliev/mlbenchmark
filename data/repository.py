@@ -11,22 +11,18 @@ from data._domain import Dataset
 
 
 class DatasetRepository(ABC):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self._datasets: List[Dataset] = []
 
     @abstractmethod
-    def load_datasets(self, ids: Optional[Union[List[int], range]] = None, X_and_y = False) -> List[Dataset]:
+    def load_datasets(self, ids: Optional[Union[List[int], range]] = None, x_and_y = False) -> List[Dataset]:
         raise NotImplementedError()
 
     @abstractmethod
-    def load_dataset(self, id: int, X_and_y = False) -> Optional[Dataset]:
+    def load_dataset(self, id: int, x_and_y = False) -> Dataset:
         raise NotImplementedError()
 
-    @property
-    def datasets(self):
-        return self._datasets
-
-class BinaryImbalancedDatasetRepository(DatasetRepository):
+class ImbalancedDatasetRepository(DatasetRepository):
     def __init__(self, verbose = False):
         super().__init__()
 
@@ -34,13 +30,13 @@ class BinaryImbalancedDatasetRepository(DatasetRepository):
         self._raw_datasets = fetch_datasets(data_home='datasets/imbalanced', verbose=verbose)
 
     @logger.catch
-    def load_dataset(self, id: int, X_and_y = False) -> Optional[Dataset]:
+    def load_dataset(self, id: int, x_and_y = False) -> Dataset:
         for i, (dataset_name, dataset_data) in enumerate(self._raw_datasets.items(), 1):
             if i == id:
                 x = dataset_data.get("data")
                 y = dataset_data.get("target")[:, np.newaxis]
 
-                if not X_and_y:
+                if not x_and_y:
                     x = pd.DataFrame(np.concatenate((x, y), axis=1))
                     y = None
                 else:
@@ -56,9 +52,11 @@ class BinaryImbalancedDatasetRepository(DatasetRepository):
                 )
             elif i > id:
                 raise ValueError(f"Id {id}) is out of range.")
+        else:
+            raise ValueError(f"Loading of Dataset(id={id}) failed.")
 
     @logger.catch
-    def load_datasets(self, ids: Optional[Union[List[int], range]] = None, X_and_y = False) -> List[Dataset]:
+    def load_datasets(self, ids: Optional[Union[List[int], range]] = None, x_and_y = False) -> List[Dataset]:
         if ids is None:
             range_start = 1
             range_end = len(self._raw_datasets.keys()) + 1
@@ -66,34 +64,65 @@ class BinaryImbalancedDatasetRepository(DatasetRepository):
         
         logger.debug(f"Chosen dataset identifiers: {ids}.")
         for id in ids:
-            dataset = self.load_dataset(id, X_and_y)
+            dataset = self.load_dataset(id, x_and_y)
             if dataset is not None:
                 self._datasets.append(dataset)
         
-        return self.datasets
+        return self._datasets
 
+# TODO: fix loading of large datasets. 271 id fails starting from 62-st dataset.
 class OpenMLDatasetRepository(DatasetRepository):
-    def __init__(self, suite_id: int, verbosity=1):
+    """
+    Repository of openml tabular datasets.
+
+    Parameters
+    ----------
+    id: int
+        Id of corpus of tasks from https://www.openml.org/search?type=benchmark&study_type=task.
+    verbosity: int, default 1
+        Fetching information verbosity.
+    """
+    def __init__(self, id: int, verbosity=1):
         super().__init__()
-        self._suite_id = suite_id
+        self._suite_id = id
         openml.config.set_root_cache_directory("datasets/openml")
         openml.config.set_console_log_level(verbosity)
 
     @logger.catch
-    def load_dataset(self, id: int, X_and_y = False) -> Optional[Dataset]:
-        task = openml.tasks.get_task(id)
-        dataset = task.get_dataset()
-        x, y, _, _ = dataset.get_data(
-            target=dataset.default_target_attribute)
+    def load_dataset(self, id: int, x_and_y = False) -> Dataset:
+        """
+        Fetch task from openml.org or load it from local cache.
+        
+        Parameters
+        ----------
+        id: int
+           OpenML task id.
+        x_and_y: bool, default false 1
+            Wheter to separate target column from feature columns.
 
-        x = cast(np.ndarray, x)
-        y = cast(np.ndarray, y)
-        if not X_and_y:
+        Returns
+        -------
+        Dataset, optional
+            Data wrapper object.
+        """
+        task = openml.tasks.get_task(id)
+        dataset = task.get_dataset(cache_format='feather')
+        x, y, _, _ = dataset.get_data(target=dataset.default_target_attribute)
+        assert x is not None and y is not None
+
+        x = cast(pd.DataFrame, x)
+        x = x.to_numpy()
+        
+        y = cast(pd.DataFrame, y)
+        y = y.to_numpy()
+        y = y[:, np.newaxis]
+
+        if not x_and_y:
             x = pd.DataFrame(np.concatenate((x,y) , axis=1))
             y = None
         else:
             x = pd.DataFrame(x)
-            y = pd.Series(y, name=dataset.default_target_attribute, dtype="category")
+            y = pd.Series(y[0], name=dataset.default_target_attribute, dtype="category")
         
         return Dataset(
             id=id,
@@ -104,17 +133,31 @@ class OpenMLDatasetRepository(DatasetRepository):
 
     # TODO: parallelize.
     @logger.catch
-    def load_datasets(self, ids: Optional[Union[List[int], range]] = None, X_and_y = False) -> List[Dataset]:
-        benchmark_suite = openml.study.get_suite(suite_id=self._suite_id)
-        if benchmark_suite.tasks is not None:
-            for i, id in enumerate(benchmark_suite.tasks):
-                if ids is not None and i not in ids:
-                    raise ValueError(f"Id {id}) is out of range.")
-                
-                dataset = self.load_dataset(id, X_and_y)
-                if dataset is not None: 
-                    self._datasets.append(dataset)
-        else:
-            raise ValueError("Tasks did not load.")
+    def load_datasets(self, ids: Optional[Union[List[int], range]] = None, x_and_y = False) -> List[Dataset]:
+        """
+        Fetch tasks from openml.org or load them from local cache.
         
-        return self.datasets
+        Parameters
+        ----------
+        ids: Union[List[int], range], optional
+           OpenML task identifiers.
+        x_and_y: bool, default false 1
+            Wheter to separate target column from feature columns.
+
+        Returns
+        -------
+        List[Dataset]
+            List of data wrapper objects.
+        """
+        corpus = openml.study.get_suite(suite_id=self._suite_id)
+        assert corpus.tasks is not None
+
+        for i, id in enumerate(corpus.tasks, 1):
+            if ids is not None and id not in ids:
+                raise ValueError(f"Task id={id} is out of range for chosen corpus.")
+
+            dataset = self.load_dataset(id, x_and_y)
+            if dataset is not None: 
+                self._datasets.append(dataset)
+        
+        return self._datasets

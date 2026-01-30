@@ -16,7 +16,7 @@ Also, currently it only supports ML algorithms, that are part of AutoML tools. S
 #### Usage
 ```python
 from core.api import MLBenchmark
-from data.repository import OpenMLDatasetRepository
+from data.repository import BinaryImbalancedDatasetRepository
 
 
 def main():

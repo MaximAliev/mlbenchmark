@@ -13,7 +13,7 @@ dependencies = [
     "imbalanced-learn==0.14.1",
     "matplotlib==3.7.5",
     "numpy==1.26.0",
-    "openml==0.14.2",
+    "openml==0.15.1",
     "pandas==2.2.3",
     "pytest==8.3.5",
     "seaborn==0.13.2",
