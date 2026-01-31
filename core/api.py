@@ -17,7 +17,7 @@ from loguru import logger
 from sklearn.base import BaseEstimator
 
 from core._automl import H2O, AutoML, AutoGluon
-from data._domain import Dataset, Task
+from core.domain import Dataset, Task
 from data.repository import DatasetRepository, ImbalancedDatasetRepository, OpenMLDatasetRepository
 from core._helpers import infer_positive_target_class, train_test_split
 

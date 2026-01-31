@@ -9,7 +9,6 @@ from sklearn.model_selection import train_test_split as tts
 from typing import cast
 
 
-
 def train_test_split(
     X: pd.DataFrame,
     y: Optional[pd.Series] = None

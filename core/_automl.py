@@ -18,7 +18,7 @@ from loguru import logger
 import jdk
 import os
 
-from data._domain import Dataset, Task
+from core.domain import Dataset, Task
 
 
 class AutoML(ABC):
