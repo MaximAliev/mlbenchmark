@@ -59,28 +59,28 @@ class AutoML(ABC):
                 else:
                     raise ValueError("Invalid average for f1-measure.")
                 score = fbeta_score(y_test, y_pred, beta=1, pos_label=pos_label, average=average)
-                logger.info(f"F1{'_' + average} score: {score:.3f}")
+                logger.success(f"F1{'_' + average} score: {score:.3f}")
             elif metric == 'precision':
                 score = precision_score(y_test, y_pred, pos_label=pos_label)
-                logger.info(f"Precision score: {score:.3f}")
+                logger.success(f"Precision score: {score:.3f}")
             elif metric == 'recall':
                 score = recall_score(y_test, y_pred, pos_label=pos_label)
-                logger.info(f"Recall score: {score:.3f}")
+                logger.success(f"Recall score: {score:.3f}")
             elif metric == 'roc_auc':
                 score = roc_auc_score(y_test, y_pred)
-                logger.info(f"ROC AUC score: {score:.3f}")
+                logger.success(f"ROC AUC score: {score:.3f}")
             elif metric == 'balanced_accuracy':
                 score = balanced_accuracy_score(y_test, y_pred, adjusted=True)
-                logger.info(f"Balanced accuracy score: {score:.3f}")
+                logger.success(f"Balanced accuracy score: {score:.3f}")
             elif metric == 'average_precision':
                 score = average_precision_score(y_test, y_pred, pos_label=pos_label)
-                logger.info(f"Average precision score: {score:.3f}")
+                logger.success(f"Average precision score: {score:.3f}")
             elif metric == 'mcc':
                 score = matthews_corrcoef(y_test, y_pred)
-                logger.info(f"MCC score: {score:.3f}")
+                logger.success(f"MCC score: {score:.3f}")
             elif metric == 'accuracy':
                 score = accuracy_score(y_test, y_pred)
-                logger.info(f"Balanced accuracy score: {score:.3f}")
+                logger.success(f"Balanced accuracy score: {score:.3f}")
             else:
                 raise ValueError(
                     f"""
@@ -210,10 +210,11 @@ class H2O(AutoML):
         super().__init__(*args, **kwargs)
         self._fitted_model = None
 
-        # Datasphere specific logic.
+        # Datasphere-specific logic.
         if os.path.exists('/job/'):
             jdk.install('17')
             os.environ['JAVA_HOME'] = '/job/.jdk/jdk-17.0.17+10'
+        
         h2o.init()
     
     @logger.catch
@@ -262,9 +263,5 @@ class H2O(AutoML):
         dataset_test = h2o.H2OFrame(x_test, column_types=self._df_dtypes[:-1])
         
         predictions = self._fitted_model.predict(dataset_test).as_data_frame(use_multi_thread=True).iloc[:, 0]
-
-        cluster = h2o.cluster()
-        if cluster is not None:
-            cluster.shutdown()
 
         return predictions
