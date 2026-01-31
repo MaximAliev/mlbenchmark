@@ -83,15 +83,15 @@ class MLBenchmark:
         self._configure_logging()
 
     def _configure_logging(self) -> None:
-        if self.verbosity < 2:
-            logger.remove()
+        logger.remove()
+        if self.verbosity == 3:
+            logger.add(sys.stdout, level='TRACE')
+        elif self.verbosity == 2:
+            logger.add(sys.stdout, level='DEBUG')
+        elif self.verbosity == 1:
             logger.add(sys.stdout, level='INFO')
-
-    def run(self) -> None:
-        datasets = self.repository.load_datasets()
-        
-        for dataset in datasets:
-            self._run_on_dataset(dataset)
+        elif self.verbosity == 0:
+            logger.add(sys.stdout, level='SUCCESS')
 
     @logger.catch(reraise=True)
     def run(self, dataset: Dataset) -> None:
